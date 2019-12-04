@@ -16,9 +16,9 @@ public class History {
 
     private Long id;
 
-    private String userId;
-
     private Integer userType;
+
+    private String userId;
 
     private Integer itemType;
 

@@ -5,7 +5,7 @@
     <!--<include resource="org/springframework/boot/logging/logback/base.xml" />-->
 
     <!--定义日志文件的存储地址和前缀名-->
-    <property name="LOG_HOME" value="/tmp/logs/history_consumer"/>
+    <property name="LOG_HOME" value="/tmp/logs/history-consumer"/>
     <property name="LOG_PREFIX" value="console"/>
 
     <!-- 一般信息按照每天生成日志文件 -->

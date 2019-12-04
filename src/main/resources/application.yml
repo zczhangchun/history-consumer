@@ -18,6 +18,7 @@ eureka:
   client:
     serviceUrl:
       defaultZone: ${ZONE}
+#      defaultZone: http://localhost:10086/eureka
 server:
   port: 8080
   tomcat:
@@ -29,3 +30,7 @@ server:
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
+mybatis:
+  mapper-locations: classpath:mapper/*Dao.xml
+  configuration:
+    map-underscore-to-camel-case: true

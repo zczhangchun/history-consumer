@@ -1,11 +1,12 @@
 package com.zhangchun.history.consumer.listener;
 
 import com.xm4399.gprp.util.CollectionUtils;
+import com.xm4399.thrift.model.GeneralHistoryLogOrigin;
 import com.xm4399.thrift.util.ThriftUtils;
 import com.zhangchun.history.consumer.dao.HistoryDao;
-import com.zhangchun.history.consumer.model.GeneralHistoryLogOrigin;
 import com.zhangchun.history.consumer.model.History;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -36,21 +37,23 @@ public class BatchListener {
 
     private static final String VALUE_FORMAT = "%s-%s-%s";
 
-
     // 手动提交ack
-    @KafkaListener(id = "12312", topics = "history", containerFactory = "batchContainerFactory", clientIdPrefix = "history")
+    @KafkaListener(topics = "general_history_log_origin")
     public void listener(List<String> dataList, Acknowledgment ack) {
 
         //接收数据，查缓存有没有该key，不管缓存有没有值，都需要先更新数据库，更新完数据库在更新redis
+
+
         List<History> historyList = new ArrayList<>();
         Set<String> keySet = new HashSet<>();
         for (String date : dataList) {
             try {
                 GeneralHistoryLogOrigin generalHistoryLogOrigin = ThriftUtils.parseLineToObject(date, GeneralHistoryLogOrigin.class);
-                String key = generalHistoryLogOrigin.getUserType() + ":" +
-                        generalHistoryLogOrigin.getUserId() + ":" +
-                        generalHistoryLogOrigin.getItemType() + ":" +
-                        generalHistoryLogOrigin.getItemId();
+                String key = new StringBuilder()
+                        .append(generalHistoryLogOrigin.getUserType() + ":")
+                        .append(generalHistoryLogOrigin.getUserId() + ":")
+                        .append(generalHistoryLogOrigin.getItemType() + ":")
+                        .append(generalHistoryLogOrigin.getItemId()).toString();
                 //判断消费的数据有没有重复
                 if (!keySet.contains(key)) {
                     //如果不存在，才加入集合
@@ -63,6 +66,7 @@ public class BatchListener {
                             .lastTime(generalHistoryLogOrigin.getTimestamp())
                             .count(1l)
                             .build());
+                    keySet.add(key);
                 }
             } catch (IllegalAccessException e) {
                 log.error("数据有误：data=" + date + "错误：" + e.getMessage());
@@ -75,12 +79,14 @@ public class BatchListener {
 
         //得到集合后，存入db
         if (!CollectionUtils.isEmpty(historyList)) {
+
+
             this.historyDao.insertList(historyList);
             log.info("storeDB success : " + historyList);
 
             //存入Redis
             String key = null;
-            List<String> list = null;
+            List<String> list = new ArrayList<>();
             Random random = new Random();
             for (History history : historyList) {
                 key = String.format(KEY_FORMAT, history.getUserType(), history.getUserId(), history.getItemType());
@@ -95,11 +101,6 @@ public class BatchListener {
         }
 
         ack.acknowledge();
-
     }
-
-
-
-
 
 }

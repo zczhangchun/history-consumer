@@ -2,16 +2,24 @@ package com.zhangchun.history.consumer.config;
 
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.AbstractKafkaListenerContainerFactory;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.KafkaListenerContainerFactory;
+import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.AbstractMessageListenerContainer;
+import org.springframework.kafka.listener.KafkaMessageListenerContainer;
+import org.springframework.kafka.listener.MessageListener;
+import org.springframework.kafka.listener.config.ContainerProperties;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,27 +39,25 @@ public class KafkaConfiguration {
     @Value("${kafka.group.id.config}")
     private String groupId;
 
-    @Bean("batchContainerFactory")
-    public ConcurrentKafkaListenerContainerFactory listenerContainer() {
-        ConcurrentKafkaListenerContainerFactory container = new ConcurrentKafkaListenerContainerFactory();
-        container.setConsumerFactory(new DefaultKafkaConsumerFactory(consumerProps()));
-        //设置并发量，小于或等于Topic的分区数
-        container.setConcurrency(1);
-        //设置为批量监听
-        container.getContainerProperties().setPollTimeout(500);
-        container.setBatchListener(true);
-
-        container.getContainerProperties().setAckMode(AbstractMessageListenerContainer.AckMode.MANUAL_IMMEDIATE);
-//        container.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
-
-        return container;
-    }
-
 
     @Bean
-    public NewTopic batchTopic() {
-        return new NewTopic("history", 8, (short) 1);
+    public ConcurrentKafkaListenerContainerFactory<Integer, String> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<Integer, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        factory.getContainerProperties().setPollTimeout(500);
+        factory.setConcurrency(1);
+        factory.setBatchListener(true);
+//        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+        factory.getContainerProperties().setAckMode(AbstractMessageListenerContainer.AckMode.MANUAL_IMMEDIATE);
+        return factory;
     }
+
+    //根据consumerProps填写的参数创建消费者工厂
+    @Bean
+    public ConsumerFactory<Integer, String> consumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(consumerProps());
+    }
+
 
     //消费者配置
     private Map<String, Object> consumerProps(){
@@ -59,9 +65,9 @@ public class KafkaConfiguration {
         Map<String, Object> props = new HashMap<String, Object>();
 
         //连接地址
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "");
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaIp);
         //GroupID
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         //关闭自动提交
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         //Session超时设置
