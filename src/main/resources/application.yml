@@ -1,0 +1,31 @@
+spring:
+  application: #微服务名称
+    name: history-consumer
+  cloud:
+    inetutils:
+      preferred-networks: 10.
+#  redis:
+#    cluster:
+#      max-redirects: 3
+#      nodes: 10.0.0.211:10000,10.0.0.211:10001,10.0.0.211:10002
+#注册中心的地址 汇报心跳的时间
+eureka:
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 1
+    lease-expiration-duration-in-seconds: 2
+    instance-id: ${spring.cloud.client.ip-address}:${server.port}
+  client:
+    serviceUrl:
+      defaultZone: ${ZONE}
+server:
+  port: 8080
+  tomcat:
+    accesslog:
+      enabled: true
+      buffered: false
+      directory: /tmp/logs/history-consumer
+      pattern: '%h %{X-Forwarded-For}i %l %u %t "%r" %b "%{Referer}i" "%{User-Agent}i" %s (%Dms)'
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
