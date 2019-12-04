@@ -43,7 +43,7 @@ public class BatchListener {
 
         //接收数据，查缓存有没有该key，不管缓存有没有值，都需要先更新数据库，更新完数据库在更新redis
 
-
+        log.info("receive data : " + dataList);
         List<History> historyList = new ArrayList<>();
         Set<String> keySet = new HashSet<>();
         for (String date : dataList) {

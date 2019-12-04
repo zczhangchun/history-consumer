@@ -7,7 +7,7 @@
 
     <groupId>com.zhangchun</groupId>
     <artifactId>history-consumer</artifactId>
-    <version>1.0.3-SNAPSHOT</version>
+    <version>1.0.4-SNAPSHOT</version>
     <packaging>jar</packaging>
     <parent>
         <groupId>com.4399</groupId>
