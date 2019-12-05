@@ -19,14 +19,12 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.AbstractMessageListenerContainer;
 import org.springframework.kafka.listener.KafkaMessageListenerContainer;
 import org.springframework.kafka.listener.MessageListener;
-import org.springframework.kafka.listener.config.ContainerProperties;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * 这个服务只需要消费数据，所以不配置生产者
- * 使用批处理消费数据
  * @author zhangchun
  */
 @EnableKafka

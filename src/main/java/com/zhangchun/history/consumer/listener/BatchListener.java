@@ -6,7 +6,6 @@ import com.xm4399.thrift.util.ThriftUtils;
 import com.zhangchun.history.consumer.dao.HistoryDao;
 import com.zhangchun.history.consumer.model.History;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -31,7 +30,7 @@ public class BatchListener {
     private HistoryDao historyDao;
 
     @Autowired
-    private DefaultRedisScript script;
+    private DefaultRedisScript redisScript;
 
     private static final String KEY_FORMAT = "%s-%s-%s";
 
@@ -43,7 +42,6 @@ public class BatchListener {
 
         //接收数据，查缓存有没有该key，不管缓存有没有值，都需要先更新数据库，更新完数据库在更新redis
 
-        log.info("receive data : " + dataList);
         List<History> historyList = new ArrayList<>();
         Set<String> keySet = new HashSet<>();
         for (String date : dataList) {
@@ -82,21 +80,19 @@ public class BatchListener {
 
 
             this.historyDao.insertList(historyList);
-            log.info("storeDB success : " + historyList);
 
             //存入Redis
             String key = null;
-            List<String> list = new ArrayList<>();
+            List<String> list = new ArrayList();
             Random random = new Random();
             for (History history : historyList) {
                 key = String.format(KEY_FORMAT, history.getUserType(), history.getUserId(), history.getItemType());
                 list.add(key);
-                list.add(history.getItemId().toString());
-                //使用lua脚本原子性插入hash数据
-                redisTemplate.execute(script, list, String.format(VALUE_FORMAT, history.getFirstTime(), history.getLastTime(), history.getCount()), (random.nextInt(10) + 86400) + "");
+//                list.add(history.getItemId().toString());
+//                redisTemplate.opsForHash().put(key, history.getItemId().toString(), String.format(VALUE_FORMAT, history.getFirstTime(), history.getLastTime(),history.getCount()));
+                redisTemplate.execute(redisScript, list, history.getItemId().toString(), String.format(VALUE_FORMAT, history.getFirstTime(), history.getLastTime(), history.getCount()), (random.nextInt(10) + 86400) + "");
                 list.clear();
                 key = null;
-                log.info("storeCache success : " + history);
             }
         }
 
