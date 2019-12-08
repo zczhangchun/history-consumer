@@ -1,6 +1,0 @@
-com/zhangchun/history/consumer/dao/HistoryDao.class
-com/zhangchun/history/consumer/model/History$HistoryBuilder.class
-com/zhangchun/history/consumer/config/KafkaConfiguration.class
-com/zhangchun/history/consumer/ConsumerApplication.class
-com/zhangchun/history/consumer/model/History.class
-com/zhangchun/history/consumer/listener/BatchListener.class

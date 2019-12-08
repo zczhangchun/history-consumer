@@ -47,25 +47,51 @@ public class BatchListener {
         for (String date : dataList) {
             try {
                 GeneralHistoryLogOrigin generalHistoryLogOrigin = ThriftUtils.parseLineToObject(date, GeneralHistoryLogOrigin.class);
-                String key = new StringBuilder()
-                        .append(generalHistoryLogOrigin.getUserType() + ":")
-                        .append(generalHistoryLogOrigin.getUserId() + ":")
-                        .append(generalHistoryLogOrigin.getItemType() + ":")
-                        .append(generalHistoryLogOrigin.getItemId()).toString();
-                //判断消费的数据有没有重复
-                if (!keySet.contains(key)) {
-                    //如果不存在，才加入集合
-                    historyList.add(History.builder()
-                            .userId(generalHistoryLogOrigin.getUserId())
-                            .userType(generalHistoryLogOrigin.getUserType().getValue())
-                            .itemType(generalHistoryLogOrigin.getItemType().getValue())
-                            .itemId(Integer.valueOf(generalHistoryLogOrigin.getItemId()))
-                            .firstTime(generalHistoryLogOrigin.getTimestamp())
-                            .lastTime(generalHistoryLogOrigin.getTimestamp())
-                            .count(1l)
-                            .build());
-                    keySet.add(key);
+                int flag = generalHistoryLogOrigin.getUserId().hashCode() % 100;
+
+                //100份取一份存入。
+                if (flag == 0) {
+                    String key = new StringBuilder()
+                            .append(generalHistoryLogOrigin.getUserType() + ":")
+                            .append(generalHistoryLogOrigin.getUserId() + ":")
+                            .append(generalHistoryLogOrigin.getItemType() + ":")
+                            .append(generalHistoryLogOrigin.getItemId()).toString();
+                    //判断消费的数据有没有重复
+                    if (!keySet.contains(key)) {
+                        //如果不存在，才加入集合
+                        historyList.add(History.builder()
+                                .userId(generalHistoryLogOrigin.getUserId())
+                                .userType(generalHistoryLogOrigin.getUserType().getValue())
+                                .itemType(generalHistoryLogOrigin.getItemType().getValue())
+                                .itemId(Integer.valueOf(generalHistoryLogOrigin.getItemId()))
+                                .firstTime(generalHistoryLogOrigin.getTimestamp())
+                                .lastTime(generalHistoryLogOrigin.getTimestamp())
+                                .count(1l)
+                                .build());
+                        keySet.add(key);
+                    }
+
+                    //得到集合后，存入db
+                    if (!CollectionUtils.isEmpty(historyList)) {
+
+
+                        this.historyDao.insertList(historyList);
+
+                        //存入Redis
+                        String rkey = null;
+                        List<String> list = new ArrayList();
+                        Random random = new Random();
+                        for (History history : historyList) {
+                            rkey = String.format(KEY_FORMAT, history.getUserType(), history.getUserId(), history.getItemType());
+                            list.add(rkey);
+                            redisTemplate.execute(redisScript, list, history.getItemId().toString(), String.format(VALUE_FORMAT, history.getFirstTime(), history.getLastTime(), history.getCount()), (random.nextInt(10) + 86400) + "");
+                            list.clear();
+                            rkey = null;
+                        }
+                    }
+
                 }
+                ack.acknowledge();
             } catch (IllegalAccessException e) {
                 log.error("数据有误：data=" + date + "错误：" + e.getMessage());
             } catch (InstantiationException e) {
@@ -75,28 +101,7 @@ public class BatchListener {
             }
         }
 
-        //得到集合后，存入db
-        if (!CollectionUtils.isEmpty(historyList)) {
 
-
-            this.historyDao.insertList(historyList);
-
-            //存入Redis
-            String key = null;
-            List<String> list = new ArrayList();
-            Random random = new Random();
-            for (History history : historyList) {
-                key = String.format(KEY_FORMAT, history.getUserType(), history.getUserId(), history.getItemType());
-                list.add(key);
-//                list.add(history.getItemId().toString());
-//                redisTemplate.opsForHash().put(key, history.getItemId().toString(), String.format(VALUE_FORMAT, history.getFirstTime(), history.getLastTime(),history.getCount()));
-                redisTemplate.execute(redisScript, list, history.getItemId().toString(), String.format(VALUE_FORMAT, history.getFirstTime(), history.getLastTime(), history.getCount()), (random.nextInt(10) + 86400) + "");
-                list.clear();
-                key = null;
-            }
-        }
-
-        ack.acknowledge();
     }
 
 }
