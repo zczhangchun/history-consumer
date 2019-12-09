@@ -47,7 +47,7 @@ public class BatchListener {
         for (String date : dataList) {
             try {
                 GeneralHistoryLogOrigin generalHistoryLogOrigin = ThriftUtils.parseLineToObject(date, GeneralHistoryLogOrigin.class);
-                int flag = generalHistoryLogOrigin.getUserId().hashCode() % 100;
+                int flag = generalHistoryLogOrigin.getUserId().hashCode() % 50;
 
                 //100份取一份存入。
                 if (flag == 0) {
@@ -71,36 +71,35 @@ public class BatchListener {
                         keySet.add(key);
                     }
 
-                    
+                }
             } catch (IllegalAccessException e) {
-                log.error("数据有误：data=" + date + "错误：" + e.getMessage());
+
             } catch (InstantiationException e) {
                 log.error("数据有误：data=" + date + "错误：" + e.getMessage());
             } catch (TException e) {
                 log.error("数据有误：data=" + date + "错误：" + e.getMessage());
             }
         }
-//得到集合后，存入db
-                    if (!CollectionUtils.isEmpty(historyList)) {
+
+        //得到集合后，存入db
+        if (!CollectionUtils.isEmpty(historyList)) {
 
 
-                        this.historyDao.insertList(historyList);
+            this.historyDao.insertList(historyList);
 
-                        //存入Redis
-                        String rkey = null;
-                        List<String> list = new ArrayList();
-                        Random random = new Random();
-                        for (History history : historyList) {
-                            rkey = String.format(KEY_FORMAT, history.getUserType(), history.getUserId(), history.getItemType());
-                            list.add(rkey);
-                            redisTemplate.execute(redisScript, list, history.getItemId().toString(), String.format(VALUE_FORMAT, history.getFirstTime(), history.getLastTime(), history.getCount()), (random.nextInt(10) + 86400) + "");
-                            list.clear();
-                            rkey = null;
-                        }
-                    }
-
-                }
-                ack.acknowledge();
+            //存入Redis
+            String rkey = null;
+            List<String> list = new ArrayList();
+            Random random = new Random();
+            for (History history : historyList) {
+                rkey = String.format(KEY_FORMAT, history.getUserType(), history.getUserId(), history.getItemType());
+                list.add(rkey);
+                redisTemplate.execute(redisScript, list, history.getItemId().toString(), String.format(VALUE_FORMAT, history.getFirstTime(), history.getLastTime(), history.getCount()), (random.nextInt(10) + 86400) + "");
+                list.clear();
+                rkey = null;
+            }
+        }
+        ack.acknowledge();
 
 
     }
