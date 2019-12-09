@@ -71,7 +71,16 @@ public class BatchListener {
                         keySet.add(key);
                     }
 
-                    //得到集合后，存入db
+                    
+            } catch (IllegalAccessException e) {
+                log.error("数据有误：data=" + date + "错误：" + e.getMessage());
+            } catch (InstantiationException e) {
+                log.error("数据有误：data=" + date + "错误：" + e.getMessage());
+            } catch (TException e) {
+                log.error("数据有误：data=" + date + "错误：" + e.getMessage());
+            }
+        }
+//得到集合后，存入db
                     if (!CollectionUtils.isEmpty(historyList)) {
 
 
@@ -92,14 +101,6 @@ public class BatchListener {
 
                 }
                 ack.acknowledge();
-            } catch (IllegalAccessException e) {
-                log.error("数据有误：data=" + date + "错误：" + e.getMessage());
-            } catch (InstantiationException e) {
-                log.error("数据有误：data=" + date + "错误：" + e.getMessage());
-            } catch (TException e) {
-                log.error("数据有误：data=" + date + "错误：" + e.getMessage());
-            }
-        }
 
 
     }
